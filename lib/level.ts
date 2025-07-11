@@ -428,18 +428,27 @@ export class Level {
     // Render power-ups
     this.powerUpManager.render(ctx)
 
-    // Render difficulty-adjusted drones
+    // Render difficulty-adjusted drones with proper colors
     for (const drone of this.drones) {
-      // Main drone body - color intensity based on difficulty and speed
+      // Get difficulty settings for proper color
       const difficultySettings = DifficultyManager.getDifficulty(this.difficulty)
       let droneColor = difficultySettings.color
+
+      // Make sure hard mode drones are RED
+      if (this.difficulty === "hard") {
+        droneColor = "#ff0000" // Force red for hard mode
+      } else if (this.difficulty === "medium") {
+        droneColor = "#ffaa00" // Orange for medium
+      } else if (this.difficulty === "beginner") {
+        droneColor = "#00ff00" // Green for beginner
+      }
 
       if (drone.attackCooldown > 0) {
         // Lighter color when on cooldown
         const r = Number.parseInt(droneColor.slice(1, 3), 16)
         const g = Number.parseInt(droneColor.slice(3, 5), 16)
         const b = Number.parseInt(droneColor.slice(5, 7), 16)
-        droneColor = `rgb(${Math.min(255, r + 50)}, ${Math.min(255, g + 50)}, ${Math.min(255, b + 50)})`
+        droneColor = `rgb(${Math.min(255, r + 80)}, ${Math.min(255, g + 80)}, ${Math.min(255, b + 80)})`
       }
 
       ctx.fillStyle = droneColor
@@ -447,7 +456,7 @@ export class Level {
 
       // Add drone glow - more intense for harder difficulties
       ctx.shadowColor = droneColor
-      ctx.shadowBlur = this.difficulty === "hard" ? 12 : this.difficulty === "medium" ? 8 : 6
+      ctx.shadowBlur = this.difficulty === "hard" ? 15 : this.difficulty === "medium" ? 10 : 6
       ctx.fillStyle = drone.attackCooldown > 0 ? "#ffcccc" : "#fca5a5"
       ctx.fillRect(drone.x + 3, drone.y + 3, drone.size - 6, drone.size - 6)
       ctx.shadowBlur = 0

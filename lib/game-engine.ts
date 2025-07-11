@@ -129,14 +129,14 @@ export class Game {
 
   private restartGame() {
     this.gameState = "playing"
-    this.player.reset()
+    this.player.reset(this.difficulty)
     this.score = 0
     this.callbacks.onScoreUpdate(0)
     this.currentLevel = 1
     this.levelComplete = false
     this.levelTransition = false
     this.transitionTimer = 0
-    this.level = new Level(1) // Reset to level 1
+    this.level = new Level(1, this.difficulty) // Reset to level 1 with difficulty
     this.resetLevelTimer() // Reset timer
     this.aiController.start()
     this.callbacks.onNarrativeUpdate("SUBJECT DELTA REINITIALIZED. RESUMING EXPERIMENT.")
@@ -237,6 +237,8 @@ export class Game {
       this.soundManager.playLevelComplete()
 
       if (this.currentLevel >= this.maxLevel) {
+        // FINAL LEVEL COMPLETED - TRIGGER VICTORY!
+        console.log("FINAL LEVEL COMPLETED - TRIGGERING VICTORY!")
         this.callbacks.onNarrativeUpdate(
           "🚨 CRITICAL ALERT: FINAL CONTAINMENT LEVEL BREACHED! SUBJECT DELTA APPROACHING TOTAL ESCAPE! 🚨",
         )
@@ -292,6 +294,12 @@ export class Game {
     this.ctx.font = "16px monospace"
     this.ctx.fillText(`TIME: ${timeInSeconds}s`, 150, 500)
 
+    // Show difficulty
+    const difficultySettings = DifficultyManager.getDifficulty(this.difficulty)
+    this.ctx.fillStyle = difficultySettings.color
+    this.ctx.font = "14px monospace"
+    this.ctx.fillText(`DIFFICULTY: ${difficultySettings.displayName}`, 300, 500)
+
     // Show drone info
     if (this.level.getDroneCount() > 0) {
       this.ctx.fillStyle = "#ff8800"
@@ -334,60 +342,79 @@ export class Game {
       this.ctx.fillStyle = "#ffffff"
       this.ctx.font = "24px monospace"
       this.ctx.fillText(`ORBS COLLECTED: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2)
+      this.ctx.fillText(
+        `DIFFICULTY: ${difficultySettings.displayName}`,
+        this.canvas.width / 2,
+        this.canvas.height / 2 + 30,
+      )
 
       this.ctx.fillStyle = "#00ff00"
       this.ctx.font = "16px monospace"
-      this.ctx.fillText("PRESS R OR SPACE TO RESTART", this.canvas.width / 2, this.canvas.height / 2 + 50)
+      this.ctx.fillText("PRESS R OR SPACE TO RESTART", this.canvas.width / 2, this.canvas.height / 2 + 70)
 
       this.ctx.textAlign = "left"
     }
 
-    // Victory screen
+    // Victory screen - ENHANCED!
     if (this.gameState === "victory") {
-      // Dark overlay with green tint and pulsing effect
-      const pulseIntensity = Math.sin(Date.now() * 0.005) * 0.2 + 0.6
-      this.ctx.fillStyle = `rgba(0, ${Math.floor(100 * pulseIntensity)}, 0, 0.9)`
+      // Dark overlay with difficulty-colored tint and pulsing effect
+      const pulseIntensity = Math.sin(Date.now() * 0.005) * 0.3 + 0.7
+      const diffColor = difficultySettings.color
+
+      // Convert hex to RGB for overlay
+      const r = Number.parseInt(diffColor.slice(1, 3), 16)
+      const g = Number.parseInt(diffColor.slice(3, 5), 16)
+      const b = Number.parseInt(diffColor.slice(5, 7), 16)
+
+      this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.3 * pulseIntensity})`
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
       // Victory text with glow effect
-      this.ctx.shadowColor = "#00ff00"
-      this.ctx.shadowBlur = 20
-      this.ctx.fillStyle = "#00ff00"
+      this.ctx.shadowColor = difficultySettings.color
+      this.ctx.shadowBlur = 25
+      this.ctx.fillStyle = difficultySettings.color
       this.ctx.font = "48px monospace"
       this.ctx.textAlign = "center"
-      this.ctx.fillText("🎉 VICTORY! 🎉", this.canvas.width / 2, this.canvas.height / 2 - 120)
+      this.ctx.fillText("🎉 MISSION COMPLETE! 🎉", this.canvas.width / 2, this.canvas.height / 2 - 140)
+
+      this.ctx.shadowBlur = 20
+      this.ctx.fillStyle = "#ffffff"
+      this.ctx.font = "36px monospace"
+      this.ctx.fillText("ESCAPE SUCCESSFUL!", this.canvas.width / 2, this.canvas.height / 2 - 90)
 
       this.ctx.shadowBlur = 15
-      this.ctx.fillStyle = "#ffffff"
-      this.ctx.font = "32px monospace"
-      this.ctx.fillText("ESCAPE SUCCESSFUL!", this.canvas.width / 2, this.canvas.height / 2 - 80)
-
-      this.ctx.shadowBlur = 10
       this.ctx.fillStyle = "#00ffff"
+      this.ctx.font = "28px monospace"
+      this.ctx.fillText("SUBJECT DELTA IS FREE!", this.canvas.width / 2, this.canvas.height / 2 - 50)
+
+      // Difficulty-specific achievement
+      this.ctx.shadowBlur = 10
+      this.ctx.fillStyle = difficultySettings.color
       this.ctx.font = "24px monospace"
-      this.ctx.fillText("SUBJECT DELTA IS FREE!", this.canvas.width / 2, this.canvas.height / 2 - 40)
+      let achievementText = ""
+      if (this.difficulty === "beginner") achievementText = "🌟 ROOKIE ESCAPIST 🌟"
+      else if (this.difficulty === "medium") achievementText = "🏆 SKILLED OPERATIVE 🏆"
+      else if (this.difficulty === "hard") achievementText = "💀 LEGENDARY SURVIVOR 💀"
+
+      this.ctx.fillText(achievementText, this.canvas.width / 2, this.canvas.height / 2 - 10)
 
       // Stats with enhanced styling
-      this.ctx.shadowBlur = 5
+      this.ctx.shadowBlur = 8
       this.ctx.fillStyle = "#ffff00"
       this.ctx.font = "20px monospace"
-      this.ctx.fillText(`TOTAL ORBS COLLECTED: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2)
-      this.ctx.fillText(`ALL ${this.maxLevel} LEVELS CONQUERED!`, this.canvas.width / 2, this.canvas.height / 2 + 30)
-
-      // Achievement message
-      this.ctx.fillStyle = "#ff8800"
-      this.ctx.font = "18px monospace"
+      this.ctx.fillText(`TOTAL ORBS COLLECTED: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 30)
+      this.ctx.fillText(`ALL ${this.maxLevel} LEVELS CONQUERED!`, this.canvas.width / 2, this.canvas.height / 2 + 60)
       this.ctx.fillText(
-        "🏆 MASTER ESCAPIST ACHIEVEMENT UNLOCKED! 🏆",
+        `DIFFICULTY: ${difficultySettings.displayName}`,
         this.canvas.width / 2,
-        this.canvas.height / 2 + 70,
+        this.canvas.height / 2 + 90,
       )
 
       // Restart instruction
-      this.ctx.shadowBlur = 8
+      this.ctx.shadowBlur = 12
       this.ctx.fillStyle = "#00ff00"
-      this.ctx.font = "16px monospace"
-      this.ctx.fillText("PRESS R TO START NEW EXPERIMENT", this.canvas.width / 2, this.canvas.height / 2 + 110)
+      this.ctx.font = "18px monospace"
+      this.ctx.fillText("PRESS R TO START NEW EXPERIMENT", this.canvas.width / 2, this.canvas.height / 2 + 130)
 
       this.ctx.shadowBlur = 0
       this.ctx.textAlign = "left"
@@ -410,7 +437,11 @@ export class Game {
           this.canvas.height / 2 + 20,
         )
       } else {
-        this.ctx.fillText("PREPARING FINAL PROTOCOL", this.canvas.width / 2, this.canvas.height / 2 + 20)
+        this.ctx.fillStyle = "#ff0000"
+        this.ctx.fillText("FINAL PROTOCOL BREACHED!", this.canvas.width / 2, this.canvas.height / 2 + 20)
+        this.ctx.fillStyle = "#ffff00"
+        this.ctx.font = "24px monospace"
+        this.ctx.fillText("TOTAL FACILITY ESCAPE IMMINENT!", this.canvas.width / 2, this.canvas.height / 2 + 60)
       }
 
       this.ctx.textAlign = "left"
@@ -469,17 +500,17 @@ export class Game {
     this.levelTransition = false
     this.levelComplete = false
 
+    // CHECK FOR VICTORY CONDITION
     if (this.currentLevel > this.maxLevel) {
+      console.log("TRIGGERING VICTORY - ALL LEVELS COMPLETED!")
       this.handleVictory()
       return
     }
 
     // Create new level with difficulty
     this.level = new Level(this.currentLevel, this.difficulty)
-    this.player.x = 100
-    this.player.y = 400
-    this.player.velocityX = 0
-    this.player.velocityY = 0
+    this.player.teleport(100, 400)
+
 
     // Reset timer for new level with difficulty
     this.resetLevelTimer()
@@ -491,14 +522,25 @@ export class Game {
   }
 
   private handleVictory() {
+    console.log("VICTORY STATE ACTIVATED!")
     this.gameState = "victory"
     this.aiController.stop()
     this.soundManager.playLevelComplete()
 
-    // Epic victory message
-    this.callbacks.onNarrativeUpdate(
-      "🎉 IMPOSSIBLE! SUBJECT DELTA HAS ACHIEVED TOTAL FACILITY BREACH! THE AI OVERSEER SYSTEM IS COMPROMISED! 🎉",
-    )
+    // Epic victory message based on difficulty
+    const difficultySettings = DifficultyManager.getDifficulty(this.difficulty)
+    let victoryMessage = ""
+
+    if (this.difficulty === "beginner") {
+      victoryMessage = "🎉 EXCELLENT! Subject Delta has successfully completed basic escape protocols! 🎉"
+    } else if (this.difficulty === "medium") {
+      victoryMessage = "🏆 IMPRESSIVE! Subject Delta has breached standard containment measures! 🏆"
+    } else if (this.difficulty === "hard") {
+      victoryMessage =
+        "💀 IMPOSSIBLE! Subject Delta has overcome MAXIMUM SECURITY protocols! The facility is compromised! 💀"
+    }
+
+    this.callbacks.onNarrativeUpdate(victoryMessage)
   }
 
   private resetLevelTimer() {

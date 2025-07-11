@@ -256,4 +256,11 @@ export class Player {
   getHighJumpCharges(): number {
     return this.highJumpCharges
   }
+  teleport(x: number, y: number) {
+  this.x = x
+  this.y = y
+  this.velocityX = 0
+  this.velocityY = 0
+}
+
 }
